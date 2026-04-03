@@ -5,7 +5,7 @@ metadata:
   annotations:
     opendatahub.io/categories: 'AI agents,Automation,Agent orchestration'
 spec:
-  img: 'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/f/openclaw-installer/manifests/common/apps/openclaw/assets/logo.png'
+  img: 'https://raw.githubusercontent.com/JayDi11a/odh-dashboard/f/openclaw-installer/manifests/common/apps/openclaw/assets/logo.png'
   displayName: OpenClaw
   provider: Red Hat
   support: red hat
