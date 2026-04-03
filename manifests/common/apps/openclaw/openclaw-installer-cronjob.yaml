@@ -72,6 +72,10 @@ spec:
                     validation_result: "true"
                   EOF
 
+                  # Mark OpenClaw as enabled now that installation is complete
+                  echo "Marking OpenClaw application as enabled..."
+                  kubectl patch odhapplication openclaw -n $NAMESPACE --type=merge -p '{"spec":{"isEnabled":true}}'
+
                   echo "OpenClaw installation completed successfully!"
               env:
                 - name: OPENCLAW_NAMESPACE

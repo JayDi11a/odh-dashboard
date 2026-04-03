@@ -15,6 +15,7 @@ spec:
   provider: Red Hat
   support: red hat
   category: Red Hat managed
+  isEnabled: false
   docsLink: 'https://github.com/JayDi11a/openclaw-installer'
   getStartedLink: 'https://github.com/JayDi11a/openclaw-installer/blob/main/README.md'
   description: >-

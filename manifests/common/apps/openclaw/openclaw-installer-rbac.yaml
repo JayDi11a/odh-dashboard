@@ -34,6 +34,11 @@ rules:
     resources: ["configmaps"]
     verbs: ["get", "create", "update"]
     resourceNames: ["openclaw-enable-validation-result"]
+  # Allow patching OdhApplication to mark as enabled
+  - apiGroups: ["dashboard.opendatahub.io"]
+    resources: ["odhapplications"]
+    verbs: ["get", "patch"]
+    resourceNames: ["openclaw"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
