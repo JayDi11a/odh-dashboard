@@ -1,0 +1,354 @@
+openapi: 3.0.0
+info:
+  title: OpenClaw Management API
+  description: API for managing OpenClaw agent instances
+  version: 1.0.0
+  contact:
+    name: ODH Dashboard Team
+    url: https://github.com/opendatahub-io/odh-dashboard
+
+servers:
+  - url: /openclaw/api/v1
+    description: OpenClaw API
+
+tags:
+  - name: instances
+    description: OpenClaw instance management
+  - name: health
+    description: Health check endpoints
+
+paths:
+  /healthcheck:
+    get:
+      summary: Health check
+      description: Returns the health status of the BFF service
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  /instances:
+    get:
+      summary: List OpenClaw instances
+      description: Retrieves a list of all deployed OpenClaw agent instances
+      operationId: listInstances
+      tags:
+        - instances
+      parameters:
+        - name: namespace
+          in: query
+          description: Filter instances by namespace
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListInstancesResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Deploy OpenClaw instance
+      description: Deploys a new OpenClaw agent instance
+      operationId: deployInstance
+      tags:
+        - instances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentConfig'
+      responses:
+        '201':
+          description: Instance deployed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentResult'
+        '400':
+          description: Bad request (missing or invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /instances/{name}:
+    get:
+      summary: Get OpenClaw instance
+      description: Retrieves details of a specific OpenClaw instance
+      operationId: getInstance
+      tags:
+        - instances
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Name of the OpenClaw instance
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: true
+          description: Namespace of the instance
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceStatus'
+        '404':
+          description: Instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete OpenClaw instance
+      description: Deletes an OpenClaw agent instance
+      operationId: deleteInstance
+      tags:
+        - instances
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Name of the OpenClaw instance to delete
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: true
+          description: Namespace of the instance
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Instance deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResult'
+        '404':
+          description: Instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: healthy
+
+    DeploymentConfig:
+      type: object
+      required:
+        - agentName
+        - modelProvider
+        - modelName
+      properties:
+        agentName:
+          type: string
+          description: Name for the OpenClaw agent instance
+          example: my-agent
+        namespace:
+          type: string
+          description: Kubernetes namespace (optional, auto-generated if not provided)
+          example: openclaw-my-agent
+        modelProvider:
+          type: string
+          enum: [anthropic, openai, vertex, vllm]
+          description: LLM provider to use
+          example: anthropic
+        modelName:
+          type: string
+          description: Model identifier/name
+          example: claude-3-5-sonnet-20241022
+        modelEndpoint:
+          type: string
+          description: Custom model endpoint URL (for vLLM)
+          example: http://vllm-service:8000
+        anthropicApiKey:
+          type: string
+          description: Anthropic API key (required for anthropic provider)
+          format: password
+        openaiApiKey:
+          type: string
+          description: OpenAI API key (required for openai provider)
+          format: password
+        gcpServiceAccountJson:
+          type: string
+          description: GCP service account JSON (required for vertex provider)
+          format: password
+        image:
+          type: string
+          description: Custom OpenClaw container image
+          example: quay.io/my-org/openclaw:latest
+        sandboxEnabled:
+          type: boolean
+          description: Enable code execution sandbox
+          default: false
+        sandboxBackend:
+          type: string
+          enum: [ssh, local]
+          description: Sandbox backend type
+          default: local
+        routeHost:
+          type: string
+          description: Custom route hostname
+          example: my-agent.apps.cluster.example.com
+
+    DeploymentResult:
+      type: object
+      required:
+        - success
+        - agentName
+        - namespace
+        - routeURL
+      properties:
+        success:
+          type: boolean
+          description: Whether deployment was successful
+        error:
+          type: string
+          description: Error message if deployment failed
+        agentName:
+          type: string
+          description: Name of the deployed agent
+          example: my-agent
+        namespace:
+          type: string
+          description: Namespace where agent was deployed
+          example: openclaw-my-agent
+        routeURL:
+          type: string
+          description: URL to access the deployed agent
+          example: https://my-agent-openclaw-my-agent.apps.cluster.example.com
+
+    InstanceStatus:
+      type: object
+      required:
+        - name
+        - namespace
+        - status
+        - routeUrl
+        - createdAt
+      properties:
+        name:
+          type: string
+          description: Instance name
+          example: my-agent
+        namespace:
+          type: string
+          description: Kubernetes namespace
+          example: openclaw-my-agent
+        status:
+          type: string
+          description: Current status of the instance
+          enum: [Pending, Running, Failed, Terminating]
+          example: Running
+        routeUrl:
+          type: string
+          description: URL to access the instance
+          example: https://my-agent-openclaw-my-agent.apps.cluster.example.com
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when instance was created
+          example: '2024-01-15T10:30:00Z'
+
+    ListInstancesResponse:
+      type: object
+      required:
+        - instances
+      properties:
+        instances:
+          type: array
+          description: List of OpenClaw instances
+          items:
+            $ref: '#/components/schemas/InstanceStatus'
+
+    DeleteResult:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether deletion was successful
+        message:
+          type: string
+          description: Success or error message
+          example: Instance deleted successfully
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: '400'
+            message:
+              type: string
+              description: Error message
+              example: agentName is required
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: OpenShift authentication token
+
+security:
+  - BearerAuth: []

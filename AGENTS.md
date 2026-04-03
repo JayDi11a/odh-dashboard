@@ -109,3 +109,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Model Registry Upstream Sync**  | `skills/model-registry-upstream-sync/` | Syncing upstream changes from kubeflow/model-registry and opening a PR         |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
+
+## Journal Plugin
+
+This project uses journal-plugin for session logging. Run `/log` to capture insights at major milestones.

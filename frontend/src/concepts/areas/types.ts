@@ -81,6 +81,7 @@ export enum SupportedArea {
 
   /* RAG & Agentic */
   LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
+  OPENCLAW = 'openclaw',
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',

@@ -48,6 +48,9 @@ tmp/
 
 # Python (for BFF services)
 __pycache__/
+
+# Journal entries
+journal/
 *.py[cod]
 *.pyc
 .venv/

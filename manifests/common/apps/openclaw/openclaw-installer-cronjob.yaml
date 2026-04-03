@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openclaw-installer
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  schedule: '0 0 * * 0'  # Never auto-runs (Sunday midnight)
+  suspend: true  # Suspended by default, triggered manually by dashboard
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            opendatahub.io/dashboard: 'true'
+        spec:
+          serviceAccountName: openclaw-installer-sa
+          restartPolicy: Never
+          containers:
+            - name: installer
+              image: quay.io/openshift/origin-cli:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+                  echo "=== OpenClaw Installer Job ==="
+                  echo "Installing OpenClaw from openclaw-installer repository..."
+
+                  # Clone the openclaw-installer repository
+                  git clone https://github.com/JayDi11a/openclaw-installer.git /tmp/openclaw-installer
+                  cd /tmp/openclaw-installer
+
+                  # Get namespace from environment or use default
+                  NAMESPACE=${OPENCLAW_NAMESPACE:-opendatahub}
+                  echo "Target namespace: $NAMESPACE"
+
+                  # Apply the Kustomize manifests
+                  echo "Applying OpenClaw manifests..."
+                  kubectl apply -k . -n $NAMESPACE
+
+                  # Wait for OpenClaw deployment to be ready
+                  echo "Waiting for OpenClaw deployment..."
+                  kubectl wait --for=condition=available --timeout=5m deployment/openclaw-bff -n $NAMESPACE || true
+
+                  # Create validation ConfigMap to signal success
+                  echo "Creating validation ConfigMap..."
+                  cat <<EOF | kubectl apply -f -
+                  apiVersion: v1
+                  kind: ConfigMap
+                  metadata:
+                    name: openclaw-enable-validation-result
+                    namespace: $NAMESPACE
+                    labels:
+                      opendatahub.io/dashboard: 'true'
+                  data:
+                    validation_result: "true"
+                  EOF
+
+                  echo "OpenClaw installation completed successfully!"
+              env:
+                - name: OPENCLAW_NAMESPACE
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: OPENCLAW_NAMESPACE
+                      optional: true

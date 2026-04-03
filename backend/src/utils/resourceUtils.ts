@@ -27,7 +27,8 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { blankDashboardCR } from './constants';
+import { blankDashboardCR, DEV_MODE } from './constants';
+import { getMockOpenclawApplication } from './mockOpenclawApp';
 import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils';
 import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
@@ -214,6 +215,25 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
   const fetchAll = async (): Promise<OdhApplication[]> => {
     const applicationDefs: OdhApplication[] = [];
     const featureFlags = getComponentFeatureFlags();
+
+    fastify.log.info(`DEV_MODE=${DEV_MODE}, NODE_ENV=${process.env.NODE_ENV}`);
+
+    // In development mode, start with mock apps instead of K8s
+    if (DEV_MODE) {
+      try {
+        fastify.log.info('Loading mock OpenClaw application (DEV_MODE=true)');
+        const openclawApp = getMockOpenclawApplication();
+        fastify.log.info(`Mock OpenClaw app created: ${openclawApp.metadata.name}`);
+        applicationDefs.push(openclawApp);
+        fastify.log.info(`Returning ${applicationDefs.length} mock applications`);
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        fastify.log.error(`Error creating mock OpenClaw app: ${errorMessage}`);
+      }
+      // Return early in dev mode - no need to query K8s
+      return Promise.resolve(applicationDefs);
+    }
+
     const customObjectsApi = fastify.kube.customObjectsApi;
     let _continue: string = undefined;
     let remainingItemCount = 1;
@@ -247,6 +267,7 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
     } catch (e) {
       fastify.log.error(`Error fetching applications: ${e.response?.body?.message || e.message}`);
     }
+
     return Promise.resolve(applicationDefs);
   };
   return fetchAll();
@@ -271,6 +292,7 @@ export const fetchApplications = async (
       // Ignore logic for apps that use internal routes for status information
       applications.push(appDef);
     } else {
+      // Check enabled status from ConfigMap (even for mock apps in DEV_MODE)
       appDef.spec.shownOnEnabledPage = enabledAppsCM?.data?.[appDef.metadata.name] === 'true';
       appDef.spec.isEnabled = await getIsAppEnabled(fastify, appDef).catch((e) => {
         fastify.log.warn(
@@ -517,24 +539,31 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
  * Sometimes we need to lockout a feature while we look to remove it more properly. This function
  * can help align the feature to being disabled.
  */
-const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => ({
-  ...config,
-  spec: {
-    ...config.spec,
-    dashboardConfig: {
-      ...config.spec.dashboardConfig,
-      // Apply Feature Lockouts Directly below
-      // Feature flags noted below are removable from the CRD at the earliest convenience
-      // Do note, update the CRD is a backwards incompatible step and needs an up-version
-      //---------------------------------------
+const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => {
+  // Guard against undefined config or missing spec
+  if (!config || !config.spec || !config.spec.dashboardConfig) {
+    return blankDashboardCR;
+  }
 
-      /**
-       * Fine Tuning feature is no longer supported
-       */
-      disableFineTuning: true,
+  return {
+    ...config,
+    spec: {
+      ...config.spec,
+      dashboardConfig: {
+        ...config.spec.dashboardConfig,
+        // Apply Feature Lockouts Directly below
+        // Feature flags noted below are removable from the CRD at the earliest convenience
+        // Do note, update the CRD is a backwards incompatible step and needs an up-version
+        //---------------------------------------
+
+        /**
+         * Fine Tuning feature is no longer supported
+         */
+        disableFineTuning: true,
+      },
     },
-  },
-});
+  };
+};
 
 const FEATURE_FLAGS_HEADER = 'x-odh-feature-flags';
 

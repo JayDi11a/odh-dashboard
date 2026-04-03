@@ -1,0 +1,67 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhApplication
+metadata:
+  name: openclaw
+  annotations:
+    opendatahub.io/categories: 'AI agents,Automation,Agent orchestration'
+spec:
+  img: 'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/f/openclaw-installer/manifests/common/apps/openclaw/assets/logo.png'
+  displayName: OpenClaw
+  provider: Red Hat
+  support: red hat
+  category: Red Hat managed
+  docsLink: 'https://github.com/JayDi11a/openclaw-installer'
+  getStartedLink: 'https://github.com/JayDi11a/openclaw-installer/blob/main/README.md'
+  description: >-
+    OpenClaw is an AI agent orchestration platform that enables deployment and management of intelligent agents.
+    Install OpenClaw to create, deploy, and manage AI agents with MCP (Model Context Protocol) server integration.
+  getStartedMarkDown: >-
+    # OpenClaw
+
+    OpenClaw provides an AI agent orchestration platform for deploying and managing intelligent agents on OpenShift.
+
+    ## What you'll get
+
+    - Agent orchestration and lifecycle management
+    - MCP (Model Context Protocol) server integration
+    - Web UI for agent configuration and monitoring
+    - REST API for programmatic agent management
+
+    ## Prerequisites
+
+    - OpenShift cluster with admin access
+    - OpenDataHub or RHOAI installed
+    - Sufficient cluster resources (minimum 2 CPU, 4Gi memory)
+
+    ## Installation
+
+    1. Locate the **OpenClaw** card on the **Enabled applications** page
+    2. Click **Enable** to install OpenClaw on your cluster
+    3. The installer will deploy the OpenClaw operator and components
+    4. Once installed, click **Open application** to access the OpenClaw UI
+
+    ## What gets installed
+
+    - OpenClaw Operator
+    - OpenClaw BFF (Backend-for-Frontend) service
+    - OpenClaw frontend UI
+    - Required CRDs for agent management
+  enable:
+    title: Install OpenClaw
+    description: Deploy OpenClaw agent orchestration platform on your cluster
+    actionLabel: Install
+    link: https://github.com/JayDi11a/openclaw-installer
+    linkPreface: Installation guide
+    inProgressText: Installing OpenClaw components...
+    validationJob: openclaw-installer
+    validationSecret: openclaw-enable-secret
+    validationConfigMap: openclaw-enable-validation-result
+    variables:
+      OPENCLAW_NAMESPACE: opendatahub
+    variableDisplayText:
+      OPENCLAW_NAMESPACE: Target namespace for OpenClaw installation
+    variableHelpText:
+      OPENCLAW_NAMESPACE: The OpenShift namespace where OpenClaw will be installed
+  beta: true
+  betaTitle: Technology Preview
+  betaText: OpenClaw is currently in Technology Preview. Features and APIs may change.

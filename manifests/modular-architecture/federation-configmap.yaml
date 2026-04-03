@@ -178,5 +178,26 @@ data:
             "namespace": "opendatahub",
             "port": 8443
         }
+      },
+      {
+        "name": "openclaw",
+        "remoteEntry": "/remoteEntry.js",
+        "authorize": true,
+        "tls": true,
+        "proxy": [
+          {
+            "path": "/openclaw/api",
+            "pathRewrite": "/api"
+          }
+        ],
+        "local": {
+          "host": "localhost",
+          "port": 8080
+        },
+        "service": {
+          "name": "odh-dashboard",
+          "namespace": "opendatahub",
+          "port": 8843
+        }
       }
     ]

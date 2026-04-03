@@ -4,6 +4,11 @@ import { FastifyRequest } from 'fastify';
 import { CronJobKind, KubeFastifyInstance, OdhApplication } from '../../../types';
 import { getApplication, updateApplications } from '../../../utils/resourceUtils';
 import { getApplicationEnabledConfigMap } from '../../../utils/resourceUtils';
+import { DEV_MODE } from '../../../utils/constants';
+import {
+  createMockOpenclawInstallerJob,
+  createMockOpenclawValidationConfigMap,
+} from './mock-openclaw-installer';
 
 const doSleep = (timeout: number) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
@@ -97,6 +102,17 @@ export const runValidation = async (
     return { complete: true, valid: false, error: 'Validation job is undefined.' };
   }
   const jobName = `${cronjobName}-job-custom-run`;
+
+  // Mock OpenClaw installer in development mode
+  if (DEV_MODE && appName === 'openclaw') {
+    fastify.log.info('Using mock OpenClaw installer (DEV_MODE)');
+    await createAccessSecret(appDef, namespace, stringData, coreV1Api).catch((e) => {
+      fastify.log.error(`Unable to create secret: ${e.response?.body?.message ?? e.message}`);
+    });
+    await createMockOpenclawInstallerJob(fastify, jobName, namespace);
+    await createMockOpenclawValidationConfigMap(fastify, namespace);
+    return { complete: false, valid: false, error: null };
+  }
 
   await createAccessSecret(appDef, namespace, stringData, coreV1Api).catch((e) => {
     fastify.log.error(`Unable to create secret: ${e.response?.body?.message ?? e.message}`);
@@ -300,6 +316,21 @@ export const getValidateISVResults = async (
       complete: true,
       valid: false,
       error: 'The validation config map for the application does not exist.',
+    };
+  }
+
+  // Mock OpenClaw validation check in development mode
+  if (DEV_MODE && appName === 'openclaw') {
+    fastify.log.info('Checking mock OpenClaw validation (DEV_MODE)');
+    // In mock mode, always return complete and valid immediately
+    const success = await getApplicationEnabledConfigMap(fastify, appDef);
+    if (success) {
+      await updateApplications();
+    }
+    return {
+      complete: true,
+      valid: true,
+      error: '',
     };
   }
 

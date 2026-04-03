@@ -14,6 +14,7 @@ export const techPreviewFlags = {
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   vLLMDeploymentOnMaaS: false,
+  disableOpenclaw: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -225,6 +226,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.VLLM_ON_MAAS]: {
     featureFlags: ['vLLMDeploymentOnMaaS'],
+  },
+  [SupportedArea.OPENCLAW]: {
+    featureFlags: ['disableOpenclaw'],
   },
 };
 

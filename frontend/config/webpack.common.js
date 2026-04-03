@@ -19,7 +19,6 @@ const SRC_DIR = process.env._ODH_SRC_DIR;
 const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
-const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
 const MF_DEV = process.env.MF_DEV;
@@ -250,9 +249,11 @@ module.exports = (env) => ({
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(SRC_DIR, 'index.html'),
+      template: path.join(SRC_DIR, env === 'development' ? 'index-dev.html' : 'index.html'),
       title: ODH_PRODUCT_NAME,
-      favicon: path.join(SRC_DIR, 'images', ODH_FAVICON),
+      inject: true,
+      // Favicon disabled temporarily to debug localStorage error
+      // favicon: path.join(SRC_DIR, 'images', ODH_FAVICON),
     }),
     new CopyPlugin({
       patterns: [
