@@ -45,6 +45,15 @@ spec:
                   echo "Applying OpenClaw manifests..."
                   kubectl apply -k . -n $NAMESPACE
 
+                  # Create gateway token secret if provided
+                  if [ -n "$GATEWAY_TOKEN" ]; then
+                    echo "Creating OpenClaw gateway token secret..."
+                    kubectl create secret generic openclaw-gateway-config \
+                      --from-literal=OPENCLAW_GATEWAY_TOKEN="$GATEWAY_TOKEN" \
+                      -n $NAMESPACE \
+                      --dry-run=client -o yaml | kubectl apply -f -
+                  fi
+
                   # Wait for OpenClaw deployment to be ready
                   echo "Waiting for OpenClaw deployment..."
                   kubectl wait --for=condition=available --timeout=5m deployment/openclaw-bff -n $NAMESPACE || true
