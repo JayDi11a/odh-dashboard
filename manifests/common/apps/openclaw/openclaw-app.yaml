@@ -63,10 +63,13 @@ spec:
     validationConfigMap: openclaw-enable-validation-result
     variables:
       OPENCLAW_NAMESPACE: opendatahub
+      GATEWAY_TOKEN: ""
     variableDisplayText:
       OPENCLAW_NAMESPACE: Target namespace for OpenClaw installation
+      GATEWAY_TOKEN: Gateway API Token
     variableHelpText:
       OPENCLAW_NAMESPACE: The OpenShift namespace where OpenClaw will be installed
+      GATEWAY_TOKEN: Authentication token for accessing the OpenClaw gateway API
   beta: true
   betaTitle: Technology Preview
   betaText: OpenClaw is currently in Technology Preview. Features and APIs may change.

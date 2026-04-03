@@ -35,6 +35,12 @@ spec:
                   NAMESPACE=${OPENCLAW_NAMESPACE:-opendatahub}
                   echo "Target namespace: $NAMESPACE"
 
+                  # Export gateway token if provided
+                  if [ -n "$GATEWAY_TOKEN" ]; then
+                    echo "Gateway token provided, exporting for installer..."
+                    export GATEWAY_TOKEN
+                  fi
+
                   # Apply the Kustomize manifests
                   echo "Applying OpenClaw manifests..."
                   kubectl apply -k . -n $NAMESPACE
@@ -64,4 +70,10 @@ spec:
                     secretKeyRef:
                       name: openclaw-enable-secret
                       key: OPENCLAW_NAMESPACE
+                      optional: true
+                - name: GATEWAY_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: GATEWAY_TOKEN
                       optional: true
