@@ -74,7 +74,7 @@ spec:
 
                   # Mark OpenClaw as enabled now that installation is complete
                   echo "Marking OpenClaw application as enabled..."
-                  kubectl patch odhapplication openclaw -n $NAMESPACE --type=merge -p '{"spec":{"isEnabled":true}}'
+                  kubectl patch odhapplication openclaw -n $NAMESPACE --type=merge -p '{"spec":{"isEnabled":true,"route":"openclaw","routeNamespace":"'$NAMESPACE'","routeSuffix":""}}'
 
                   echo "OpenClaw installation completed successfully!"
               env:
