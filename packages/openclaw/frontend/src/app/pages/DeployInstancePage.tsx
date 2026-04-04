@@ -13,7 +13,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { deployInstance, DeploymentConfig } from '~/app/api/openclaw';
+import { deployInstance, DeploymentConfig } from '../api/openclaw';
 
 type ModelProvider = 'anthropic' | 'openai' | 'vertex' | 'vllm';
 
@@ -31,6 +31,10 @@ const DeployInstancePage: React.FC = () => {
   const [deploying, setDeploying] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
+  const [deploymentResult, setDeploymentResult] = React.useState<{
+    routeURL?: string;
+    gatewayToken?: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,9 +70,11 @@ const DeployInstancePage: React.FC = () => {
 
       if (result.success) {
         setSuccess(true);
-        setTimeout(() => {
-          navigate('/openclaw/instances');
-        }, 2000);
+        setDeploymentResult({
+          routeURL: result.routeURL,
+          gatewayToken: result.gatewayToken,
+        });
+        // Don't auto-redirect - let user copy the gateway token first
       } else {
         setError(result.error || 'Deployment failed');
       }
@@ -95,13 +101,36 @@ const DeployInstancePage: React.FC = () => {
         </Alert>
       )}
 
-      {success && (
-        <Alert variant="success" title="Success" style={{ marginBottom: '1rem' }}>
-          OpenClaw instance deployed successfully! Redirecting...
+      {success && deploymentResult && (
+        <Alert variant="success" title="Deployment Successful!" style={{ marginBottom: '1rem' }}>
+          <p style={{ marginBottom: '1rem' }}>
+            Your OpenClaw instance has been deployed successfully. Save the following credentials:
+          </p>
+          <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '4px' }}>
+            <p style={{ marginBottom: '0.5rem' }}>
+              <strong>WebSocket URL:</strong>
+            </p>
+            <code style={{ display: 'block', marginBottom: '1rem', wordBreak: 'break-all' }}>
+              {deploymentResult.routeURL?.replace('https://', 'wss://')}
+            </code>
+
+            <p style={{ marginBottom: '0.5rem' }}>
+              <strong>Gateway Token:</strong>
+            </p>
+            <code style={{ display: 'block', marginBottom: '1rem', wordBreak: 'break-all' }}>
+              {deploymentResult.gatewayToken || 'Generating...'}
+            </code>
+          </div>
+          <p style={{ marginTop: '1rem' }}>
+            <Button variant="link" onClick={() => navigate('/openclaw/instances')}>
+              View all instances
+            </Button>
+          </p>
         </Alert>
       )}
 
-      <Form onSubmit={handleSubmit}>
+      {!success && (
+        <Form onSubmit={handleSubmit}>
         <FormGroup label="Agent Name" isRequired fieldId="agent-name">
           <TextInput
             isRequired
@@ -230,6 +259,7 @@ const DeployInstancePage: React.FC = () => {
           </Button>
         </ActionGroup>
       </Form>
+      )}
     </PageSection>
   );
 };

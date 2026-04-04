@@ -11,7 +11,7 @@ import {
 import { PlusCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { listInstances, InstanceStatus } from '~/app/api/openclaw';
+import { listInstances, InstanceStatus } from '../api/openclaw';
 
 const InstanceListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -94,6 +94,7 @@ const InstanceListPage: React.FC = () => {
             <Th>Namespace</Th>
             <Th>Status</Th>
             <Th>URL</Th>
+            <Th>Gateway Token</Th>
             <Th>Created</Th>
           </Tr>
         </Thead>
@@ -108,6 +109,13 @@ const InstanceListPage: React.FC = () => {
                   <a href={instance.routeUrl} target="_blank" rel="noopener noreferrer">
                     {instance.routeUrl}
                   </a>
+                ) : (
+                  'Pending'
+                )}
+              </Td>
+              <Td dataLabel="Gateway Token">
+                {instance.gatewayToken ? (
+                  <code style={{ fontSize: '0.85em' }}>{instance.gatewayToken}</code>
                 ) : (
                   'Pending'
                 )}

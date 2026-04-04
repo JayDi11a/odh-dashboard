@@ -6,7 +6,9 @@ import {
   restDELETE,
   isModArchResponse,
 } from 'mod-arch-core';
-import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
+
+const URL_PREFIX = '/openclaw';
+const BFF_API_VERSION = 'v1';
 
 export interface DeploymentConfig {
   agentName: string;
@@ -29,6 +31,7 @@ export interface DeploymentResult {
   agentName: string;
   namespace: string;
   routeURL: string;
+  gatewayToken?: string;
 }
 
 export interface InstanceStatus {
@@ -36,6 +39,7 @@ export interface InstanceStatus {
   namespace: string;
   status: string;
   routeUrl: string;
+  gatewayToken?: string;
   createdAt: string;
 }
 

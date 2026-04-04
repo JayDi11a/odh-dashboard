@@ -19,8 +19,8 @@ import {
   useNamespaceSelector,
   useSettings,
 } from 'mod-arch-core';
-import AppRoutes from '~/app/AppRoutes';
-import { AppContext } from '~/app/context/AppContext';
+import AppRoutes from './AppRoutes';
+import { AppContext } from './context/AppContext';
 
 const App: React.FC = () => {
   const {

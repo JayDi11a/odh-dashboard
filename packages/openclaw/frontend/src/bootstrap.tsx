@@ -8,14 +8,14 @@ import {
   NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
+  DeploymentMode,
 } from 'mod-arch-core';
-import {
-  BFF_API_VERSION,
-  DEPLOYMENT_MODE,
-  MANDATORY_NAMESPACE,
-  URL_PREFIX,
-} from '~/app/utilities/const';
-import App from '~/app/App';
+import App from './app/App';
+
+const URL_PREFIX = '/openclaw';
+const BFF_API_VERSION = 'v1';
+const DEPLOYMENT_MODE = DeploymentMode.Federated;
+const MANDATORY_NAMESPACE = undefined;
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 

@@ -6,23 +6,25 @@ import {
   NotificationContextProvider,
   BrowserStorageContextProvider,
 } from 'mod-arch-core';
-import { URL_PREFIX } from '~/app/utilities/const';
-import App from '~/app/App';
+import MainPage from '../app/pages/MainPage';
+
+const URL_PREFIX = '/openclaw';
+const BFF_API_VERSION = 'v1';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
-  BFF_API_VERSION: 'v1',
+  BFF_API_VERSION,
 };
 
-const ModArchWrapper: React.FC = () => (
+const OpenclawWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
-        <App />
+        <MainPage />
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>
 );
 
-export default ModArchWrapper;
+export default OpenclawWrapper;

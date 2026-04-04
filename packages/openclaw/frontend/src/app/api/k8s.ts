@@ -5,8 +5,10 @@ import {
   isModArchResponse,
   restGET,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind } from '~/app/types';
+import { NamespaceKind } from '../types';
+
+const URL_PREFIX = '/openclaw';
+const BFF_API_VERSION = 'v1';
 
 export const getUser =
   (hostPath: string) =>

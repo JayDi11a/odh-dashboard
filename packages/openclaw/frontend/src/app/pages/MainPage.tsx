@@ -1,10 +1,10 @@
 import React from 'react';
-import ApplicationsPage from '~/app/components/ApplicationsPage';
+import ApplicationsPage from '../components/ApplicationsPage';
 
 const MainPage: React.FC = () => (
   <ApplicationsPage
-    title="Main Page"
-    description={<p>Welcome to the Main Page</p>}
+    title="OpenClaw Instances"
+    description={<p>Manage your OpenClaw AI agent instances</p>}
     empty
     loaded
     provideChildrenPadding
