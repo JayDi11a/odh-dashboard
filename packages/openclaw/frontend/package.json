@@ -2,8 +2,8 @@
   "name": "openclaw-ui",
   "version": "1.0.0",
   "description": "An user interface for Openclaw projects",
-  "repository": "https://github.com/opendatahub-io/mod-arch-library.git",
-  "homepage": "https://github.com/opendatahub-io/mod-arch-library",
+  "repository": "https://github.com/opendatahub-io/odh-dashboard.git",
+  "homepage": "https://github.com/opendatahub-io/odh-dashboard",
   "license": "Apache-2.0",
   "private": true,
   "engines": {
