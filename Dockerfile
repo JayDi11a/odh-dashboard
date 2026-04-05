@@ -23,6 +23,9 @@ RUN npm cache clean --force
 
 RUN npm ci --ignore-scripts
 
+# Install frontend dependencies for packages that have install:module script
+RUN npx turbo run install:module --ui=stream
+
 ENV TURBO_TELEMETRY_DISABLED=1
 RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
       echo "Setting up RHOAI vars.."; \
