@@ -430,4 +430,4 @@ npx mod-arch-installer my-module --flavor kubeflow
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)
 - [OpenAPI Spec](api/openapi/mod-arch.yaml) -
-  [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/mod-arch-library/main/mod-arch-starter/api/openapi/mod-arch.yaml)
+  [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/main/packages/openclaw/api/openapi/openclaw.yaml)

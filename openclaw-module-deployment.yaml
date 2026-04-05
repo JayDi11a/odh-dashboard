@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-module
+  namespace: opendatahub
+  labels:
+    app: openclaw-module
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw-module
+  template:
+    metadata:
+      labels:
+        app: openclaw-module
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: openclaw-dist
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: openclaw-dist
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw-module
+  namespace: opendatahub
+  labels:
+    app: openclaw-module
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: openclaw-module

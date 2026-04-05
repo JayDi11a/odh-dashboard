@@ -1,7 +1,7 @@
 [contributing guidelines]: ../CONTRIBUTING.md
 [Dev setup & Requirements]: docs/dev-setup.md
 [Mod Arch UI documentation]: docs/README.md
-[issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
+[issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
 
 # Mod Arch UI
 

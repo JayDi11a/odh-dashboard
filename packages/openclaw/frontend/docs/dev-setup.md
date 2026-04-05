@@ -13,13 +13,13 @@ This project requires the following tools to be installed on your system:
 1. Clone the repository
 
       ``` bash
-      git clone https://github.com/opendatahub-io/mod-arch-library
+      git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
 2. Within the repo context, install project dependencies
 
      ```bash
-     cd mod-arch/clients/ui/frontend && npm install
+     cd odh-dashboard/packages/openclaw/frontend && npm install
      ```
 
 ### Build project

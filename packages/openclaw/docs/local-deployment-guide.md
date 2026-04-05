@@ -88,7 +88,7 @@ kubectl apply -k "https://github.com/alexcreasy/mod-arch/manifests/kustomize/ove
 
 Note: an issue has been filed regarding this ticket here:
 
-* [#266 Cannot deploy to k8s on AArch64 nodes using manifests in repo](https://github.com/opendatahub-io/mod-arch-library/issues/266)
+* [#266 Cannot deploy to k8s on AArch64 nodes using manifests in repo](https://github.com/opendatahub-io/odh-dashboard/issues/266)
 
 #### 4. Setup a port forward to the service
 

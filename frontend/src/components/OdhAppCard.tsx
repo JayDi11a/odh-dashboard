@@ -172,6 +172,18 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       );
     }
 
+    if (odhApp.metadata.name === 'openclaw' && odhApp.spec.internalRoute === 'openclaw') {
+      return (
+        <Link
+          data-testid="openclaw-app-link"
+          to="/openclaw"
+          className={css('odh-card__footer__link')}
+        >
+          Launch OpenClaw
+        </Link>
+      );
+    }
+
     return (
       <a
         className={launchClasses}

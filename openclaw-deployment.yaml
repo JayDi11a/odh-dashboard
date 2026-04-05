@@ -1,0 +1,292 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opendatahub
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openclaw
+  namespace: opendatahub
+  annotations:
+    serviceaccounts.openshift.io/oauth-redirectreference.openclaw: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"openclaw"}}'
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw-home-pvc
+  namespace: opendatahub
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openclaw-secrets
+  namespace: opendatahub
+type: Opaque
+stringData:
+  OPENCLAW_GATEWAY_TOKEN: "test-token-12345"
+  ANTHROPIC_API_KEY: ""
+  OPENAI_API_KEY: ""
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openclaw-oauth-config
+  namespace: opendatahub
+type: Opaque
+stringData:
+  client-secret: "openclaw-client-secret-12345"
+  cookie_secret: "Q29va2llU2VjcmV0MTIzNDU2Nzg5MA=="
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  namespace: opendatahub
+data:
+  openclaw.json: |
+    {
+      "version": "1.0.0",
+      "gateway": {
+        "bind": "lan",
+        "port": 18789
+      },
+      "agents": {}
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-agent
+  namespace: opendatahub
+data:
+  agent.json: |
+    {
+      "name": "default",
+      "description": "Default OpenClaw agent"
+    }
+  AGENTS.md: |
+    # Default Agent
+    This is the default OpenClaw agent.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-agent-tree
+  namespace: opendatahub
+data:
+  .keep: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-skills
+  namespace: opendatahub
+data:
+  .keep: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-cron
+  namespace: opendatahub
+data:
+  jobs.json: |
+    {
+      "jobs": []
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw
+  namespace: opendatahub
+  labels:
+    app: openclaw
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: openclaw-tls
+spec:
+  type: ClusterIP
+  selector:
+    app: openclaw
+  ports:
+    - name: oauth-ui
+      port: 8443
+      targetPort: 8443
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+  namespace: opendatahub
+  labels:
+    app: openclaw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: openclaw
+    spec:
+      serviceAccountName: openclaw
+      initContainers:
+        - name: init-config
+          image: registry.access.redhat.com/ubi9-minimal:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              chmod 644 /home/node/.openclaw/openclaw.json
+              mkdir -p /home/node/.openclaw/workspace
+              mkdir -p /home/node/.openclaw/skills
+              mkdir -p /home/node/.openclaw/cron
+              mkdir -p /home/node/.openclaw/workspace-default
+              cp /agents/AGENTS.md /home/node/.openclaw/workspace-default/AGENTS.md 2>/dev/null || true
+              cp /agents/agent.json /home/node/.openclaw/workspace-default/agent.json 2>/dev/null || true
+              echo "Config initialized"
+          volumeMounts:
+            - name: openclaw-home
+              mountPath: /home/node/.openclaw
+            - name: config-template
+              mountPath: /config
+            - name: agent-config
+              mountPath: /agents
+      containers:
+        - name: gateway
+          image: image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw:latest
+          imagePullPolicy: Always
+          command:
+            - node
+            - --max-old-space-size=3200
+            - dist/index.js
+            - gateway
+            - run
+            - --bind
+            - lan
+            - --port
+            - "18789"
+          ports:
+            - name: gateway
+              containerPort: 18789
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /home/node
+            - name: NODE_ENV
+              value: production
+            - name: OPENCLAW_CONFIG_DIR
+              value: /home/node/.openclaw
+            - name: OPENCLAW_STATE_DIR
+              value: /home/node/.openclaw
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: OPENCLAW_GATEWAY_TOKEN
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+          volumeMounts:
+            - name: openclaw-home
+              mountPath: /home/node/.openclaw
+            - name: tmp-volume
+              mountPath: /tmp
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: 1000m
+            limits:
+              memory: 4Gi
+              cpu: 2000m
+        - name: oauth-proxy
+          image: image-registry.openshift-image-registry.svc:5000/opendatahub/origin-oauth-proxy:4.14
+          imagePullPolicy: IfNotPresent
+          args:
+            - --http-address=:8443
+            - --https-address=
+            - --provider=openshift
+            - --upstream=http://localhost:18789
+            - --client-id=system:serviceaccount:opendatahub:openclaw
+            - --client-secret-file=/etc/oauth/config/client-secret
+            - --cookie-secret-file=/etc/oauth/config/cookie_secret
+            - --cookie-expire=23h0m0s
+            - --pass-access-token
+            - --scope=user:info
+            - --skip-auth-regex=^/(metrics|api)
+            - --tls-cert=/etc/tls/private/tls.crt
+            - --tls-key=/etc/tls/private/tls.key
+          ports:
+            - containerPort: 8443
+              name: oauth-ui
+              protocol: TCP
+          volumeMounts:
+            - name: oauth-config
+              mountPath: /etc/oauth/config
+            - name: proxy-tls
+              mountPath: /etc/tls/private
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m
+      volumes:
+        - name: openclaw-home
+          persistentVolumeClaim:
+            claimName: openclaw-home-pvc
+        - name: config-template
+          configMap:
+            name: openclaw-config
+        - name: agent-config
+          configMap:
+            name: openclaw-agent
+        - name: tmp-volume
+          emptyDir: {}
+        - name: oauth-config
+          secret:
+            secretName: openclaw-oauth-config
+        - name: proxy-tls
+          secret:
+            secretName: openclaw-tls
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: openclaw
+  namespace: opendatahub
+  labels:
+    app: openclaw
+spec:
+  to:
+    kind: Service
+    name: openclaw
+  port:
+    targetPort: oauth-ui
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect

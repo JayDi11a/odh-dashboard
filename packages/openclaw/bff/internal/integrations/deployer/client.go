@@ -43,11 +43,12 @@ type DeploymentConfig struct {
 
 // DeploymentResult represents the deployment response
 type DeploymentResult struct {
-	Success   bool   `json:"success"`
-	AgentName string `json:"agentName"`
-	Namespace string `json:"namespace"`
-	RouteURL  string `json:"routeUrl,omitempty"`
-	Error     string `json:"error,omitempty"`
+	Success      bool   `json:"success"`
+	AgentName    string `json:"agentName"`
+	Namespace    string `json:"namespace"`
+	RouteURL     string `json:"routeUrl,omitempty"`
+	GatewayToken string `json:"gatewayToken,omitempty"`
+	Error        string `json:"error,omitempty"`
 }
 
 // InstanceStatus represents an instance's status
@@ -56,6 +57,7 @@ type InstanceStatus struct {
 	Namespace     string `json:"namespace"`
 	Status        string `json:"status"` // Running, Pending, Failed, Unknown
 	RouteURL      string `json:"routeUrl,omitempty"`
+	GatewayToken  string `json:"gatewayToken,omitempty"`
 	ModelProvider string `json:"modelProvider,omitempty"`
 	ModelName     string `json:"modelName,omitempty"`
 	CreatedAt     string `json:"createdAt,omitempty"`
