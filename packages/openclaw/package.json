@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/openclaw",
   "description": "Openclaw plugin.",
   "version": "0.0.0",
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
   "module-federation": {
     "name": "openclaw",
     "remoteEntry": "/remoteEntry.js",
