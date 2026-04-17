@@ -1,0 +1,153 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openclaw-installer
+  labels:
+    app: openclaw-installer
+    opendatahub.io/dashboard: 'true'
+spec:
+  schedule: '0 0 * * 0'  # Never auto-runs (Sunday midnight)
+  suspend: true  # Suspended by default, triggered manually by dashboard
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: openclaw-installer
+            opendatahub.io/dashboard: 'true'
+        spec:
+          serviceAccountName: openclaw-installer-sa
+          restartPolicy: Never
+          containers:
+            - name: installer
+              image: quay.io/openshift/origin-cli:4.14
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+                  echo "=== OpenClaw Installer Job ==="
+                  echo "Installing OpenClaw..."
+
+                  # Get namespace from environment or use default
+                  NAMESPACE=${OPENCLAW_NAMESPACE:-opendatahub}
+                  echo "Target namespace: $NAMESPACE"
+
+                  # Create OpenClaw deployment
+                  echo "Creating OpenClaw deployment..."
+                  cat <<EOF | oc apply -f -
+                  apiVersion: apps/v1
+                  kind: Deployment
+                  metadata:
+                    name: openclaw
+                    namespace: $NAMESPACE
+                    labels:
+                      app: openclaw
+                      opendatahub.io/dashboard: 'true'
+                  spec:
+                    replicas: 1
+                    selector:
+                      matchLabels:
+                        app: openclaw
+                    template:
+                      metadata:
+                        labels:
+                          app: openclaw
+                      spec:
+                        containers:
+                          - name: openclaw
+                            image: quay.io/opendatahub/openclaw:latest
+                            imagePullPolicy: IfNotPresent
+                            ports:
+                              - containerPort: 8080
+                                name: http
+                                protocol: TCP
+                            env:
+                              - name: OPENCLAW_NAMESPACE
+                                value: "$NAMESPACE"
+                            resources:
+                              requests:
+                                cpu: 100m
+                                memory: 256Mi
+                              limits:
+                                cpu: 500m
+                                memory: 512Mi
+                  EOF
+
+                  # Create OpenClaw service
+                  echo "Creating OpenClaw service..."
+                  cat <<EOF | oc apply -f -
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: openclaw
+                    namespace: $NAMESPACE
+                    labels:
+                      app: openclaw
+                      opendatahub.io/dashboard: 'true'
+                  spec:
+                    selector:
+                      app: openclaw
+                    ports:
+                      - name: http
+                        port: 8080
+                        protocol: TCP
+                        targetPort: 8080
+                    type: ClusterIP
+                  EOF
+
+                  # Create OpenClaw route
+                  echo "Creating OpenClaw route..."
+                  cat <<EOF | oc apply -f -
+                  apiVersion: route.openshift.io/v1
+                  kind: Route
+                  metadata:
+                    name: openclaw
+                    namespace: $NAMESPACE
+                    labels:
+                      app: openclaw
+                      opendatahub.io/dashboard: 'true'
+                  spec:
+                    to:
+                      kind: Service
+                      name: openclaw
+                      weight: 100
+                    port:
+                      targetPort: 8080
+                    tls:
+                      termination: edge
+                      insecureEdgeTerminationPolicy: Redirect
+                    wildcardPolicy: None
+                  EOF
+
+                  # Wait for route to be ready
+                  echo "Waiting for OpenClaw route..."
+                  sleep 5
+                  ROUTE_HOST=$(oc get route openclaw -n $NAMESPACE -o jsonpath='{.spec.host}')
+                  echo "OpenClaw route created: https://$ROUTE_HOST"
+
+                  # Create validation ConfigMap to signal success
+                  echo "Creating validation ConfigMap..."
+                  cat <<EOF | oc apply -f -
+                  apiVersion: v1
+                  kind: ConfigMap
+                  metadata:
+                    name: openclaw-enable-validation-result
+                    namespace: $NAMESPACE
+                    labels:
+                      opendatahub.io/dashboard: 'true'
+                  data:
+                    validation_result: "true"
+                    route: "openclaw"
+                  EOF
+
+                  echo "OpenClaw installation completed successfully!"
+                  echo "Route: https://$ROUTE_HOST"
+              env:
+                - name: OPENCLAW_NAMESPACE
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: OPENCLAW_NAMESPACE
+                      optional: true
