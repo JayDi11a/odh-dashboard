@@ -136,8 +136,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   const launchClasses = css(
     'odh-card__footer__link',
-    !odhApp.spec.link && 'm-hidden',
-    (disabled || !workbenchEnabled) && 'm-disabled',
+    (disabled || !workbenchEnabled || !odhApp.spec.link) && 'm-disabled',
   );
 
   const renderCardFooterLink = () => {
