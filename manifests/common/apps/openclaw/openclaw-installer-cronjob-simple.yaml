@@ -55,6 +55,7 @@ spec:
                         labels:
                           app: openclaw-installer
                       spec:
+                        serviceAccountName: openclaw-installer-sa
                         containers:
                           - name: openclaw-installer
                             image: image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw-installer:latest
