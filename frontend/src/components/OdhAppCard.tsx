@@ -266,7 +266,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
       id={odhApp.metadata.name}
       role="listitem"
       className={cardClasses}
-      isDisabled={disabled || !workbenchEnabled}
+      isDisabled={disabled}
     >
       <CardHeader
         actions={{
