@@ -23,13 +23,18 @@ oc delete deployment openclaw -n "$NAMESPACE" --ignore-not-found=true
 oc delete service openclaw -n "$NAMESPACE" --ignore-not-found=true
 oc delete route openclaw -n "$NAMESPACE" --ignore-not-found=true
 
-# Delete OpenClaw ConfigMaps and Secrets
-echo "Removing OpenClaw ConfigMaps and Secrets..."
-oc delete configmap openclaw-config -n "$NAMESPACE" --ignore-not-found=true
-oc delete configmap openclaw-agent -n "$NAMESPACE" --ignore-not-found=true
-oc delete secret openclaw-secrets -n "$NAMESPACE" --ignore-not-found=true
+# Delete any additional OpenClaw resources (labeled - includes pods)
+echo "Removing additional OpenClaw resources (pods, replicasets, etc.)..."
+oc delete all -l app=openclaw -n "$NAMESPACE" --ignore-not-found=true
+oc delete all -l app=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+oc delete all -l app.kubernetes.io/managed-by=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+
+# Wait a moment for pods to terminate gracefully
+echo "Waiting for pods to terminate..."
+sleep 5
 
 # Delete OpenClaw PVC (WARNING: This deletes all OpenClaw data)
+# Deleted after pods to avoid PVC hanging on terminating pods
 echo "Removing OpenClaw PVC (all data will be lost)..."
 oc delete pvc openclaw-home-pvc -n "$NAMESPACE" --ignore-not-found=true
 
@@ -37,6 +42,12 @@ oc delete pvc openclaw-home-pvc -n "$NAMESPACE" --ignore-not-found=true
 echo "Removing installer Jobs..."
 oc delete jobs -l job-name=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
 oc delete jobs -l app=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+
+# Delete OpenClaw ConfigMaps and Secrets
+echo "Removing OpenClaw ConfigMaps and Secrets..."
+oc delete configmap openclaw-config -n "$NAMESPACE" --ignore-not-found=true
+oc delete configmap openclaw-agent -n "$NAMESPACE" --ignore-not-found=true
+oc delete secret openclaw-secrets -n "$NAMESPACE" --ignore-not-found=true
 
 # Delete validation ConfigMap (this makes OpenClaw show "Enable" button again)
 echo "Removing validation ConfigMap..."
@@ -51,12 +62,6 @@ echo "Removing openclaw from enabled applications ConfigMap..."
 oc patch configmap odh-enabled-applications-config -n "$NAMESPACE" --type='json' \
   -p='[{"op": "remove", "path": "/data/openclaw"}]' 2>/dev/null || \
   echo "  (ConfigMap entry already removed or doesn't exist)"
-
-# Delete any additional OpenClaw resources (labeled)
-echo "Removing additional OpenClaw resources..."
-oc delete all -l app=openclaw -n "$NAMESPACE" --ignore-not-found=true
-oc delete all -l app=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
-oc delete all -l app.kubernetes.io/managed-by=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
 
 # Restart dashboard pod to clear cached application state
 echo "Restarting dashboard pod to refresh application state..."
