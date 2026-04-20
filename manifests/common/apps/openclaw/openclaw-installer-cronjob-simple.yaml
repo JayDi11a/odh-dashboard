@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: openclaw-installer
   labels:
-    app: openclaw-installer
+    app: openclaw-installer-installer
     opendatahub.io/dashboard: 'true'
 spec:
   schedule: '0 0 * * 0'  # Never auto-runs (Sunday midnight)
@@ -14,14 +14,14 @@ spec:
       template:
         metadata:
           labels:
-            app: openclaw-installer
+            app: openclaw-installer-installer
             opendatahub.io/dashboard: 'true'
         spec:
           serviceAccountName: openclaw-installer-sa
           restartPolicy: Never
           containers:
             - name: installer
-              image: quay.io/openshift/origin-cli:4.14
+              image: image-registry.openshift-image-registry.svc:5000/opendatahub/origin-cli:latest
               command:
                 - /bin/bash
                 - -c
@@ -40,27 +40,27 @@ spec:
                   apiVersion: apps/v1
                   kind: Deployment
                   metadata:
-                    name: openclaw
+                    name: openclaw-installer
                     namespace: $NAMESPACE
                     labels:
-                      app: openclaw
+                      app: openclaw-installer
                       opendatahub.io/dashboard: 'true'
                   spec:
                     replicas: 1
                     selector:
                       matchLabels:
-                        app: openclaw
+                        app: openclaw-installer
                     template:
                       metadata:
                         labels:
-                          app: openclaw
+                          app: openclaw-installer
                       spec:
                         containers:
-                          - name: openclaw
-                            image: quay.io/opendatahub/openclaw:latest
+                          - name: openclaw-installer
+                            image: image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw-installer:latest
                             imagePullPolicy: IfNotPresent
                             ports:
-                              - containerPort: 8080
+                              - containerPort: 3000
                                 name: http
                                 protocol: TCP
                             env:
@@ -81,19 +81,19 @@ spec:
                   apiVersion: v1
                   kind: Service
                   metadata:
-                    name: openclaw
+                    name: openclaw-installer
                     namespace: $NAMESPACE
                     labels:
-                      app: openclaw
+                      app: openclaw-installer
                       opendatahub.io/dashboard: 'true'
                   spec:
                     selector:
-                      app: openclaw
+                      app: openclaw-installer
                     ports:
                       - name: http
-                        port: 8080
+                        port: 3000
                         protocol: TCP
-                        targetPort: 8080
+                        targetPort: 3000
                     type: ClusterIP
                   EOF
 
@@ -103,18 +103,18 @@ spec:
                   apiVersion: route.openshift.io/v1
                   kind: Route
                   metadata:
-                    name: openclaw
+                    name: openclaw-installer
                     namespace: $NAMESPACE
                     labels:
-                      app: openclaw
+                      app: openclaw-installer
                       opendatahub.io/dashboard: 'true'
                   spec:
                     to:
                       kind: Service
-                      name: openclaw
+                      name: openclaw-installer
                       weight: 100
                     port:
-                      targetPort: 8080
+                      targetPort: 3000
                     tls:
                       termination: edge
                       insecureEdgeTerminationPolicy: Redirect
@@ -124,7 +124,7 @@ spec:
                   # Wait for route to be ready
                   echo "Waiting for OpenClaw route..."
                   sleep 5
-                  ROUTE_HOST=$(oc get route openclaw -n $NAMESPACE -o jsonpath='{.spec.host}')
+                  ROUTE_HOST=$(oc get route openclaw-installer -n $NAMESPACE -o jsonpath='{.spec.host}')
                   echo "OpenClaw route created: https://$ROUTE_HOST"
 
                   # Create validation ConfigMap to signal success
@@ -139,7 +139,7 @@ spec:
                       opendatahub.io/dashboard: 'true'
                   data:
                     validation_result: "true"
-                    route: "openclaw"
+                    route: "openclaw-installer"
                   EOF
 
                   echo "OpenClaw installation completed successfully!"

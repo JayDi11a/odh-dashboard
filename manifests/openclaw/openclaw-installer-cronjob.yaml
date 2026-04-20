@@ -1,0 +1,111 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openclaw-installer
+  namespace: opendatahub
+  labels:
+    app: openclaw-installer
+    opendatahub.io/dashboard: "true"
+spec:
+  # Suspended by default - triggered manually by dashboard
+  suspend: true
+  schedule: "0 0 * * *"  # Placeholder schedule (never runs while suspended)
+  jobTemplate:
+    metadata:
+      labels:
+        app: openclaw-installer
+        opendatahub.io/dashboard: "true"
+    spec:
+      template:
+        metadata:
+          labels:
+            app: openclaw-installer
+        spec:
+          serviceAccountName: openclaw-installer
+          restartPolicy: OnFailure
+          containers:
+            - name: installer
+              image: image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw-installer:latest
+              imagePullPolicy: Always
+              env:
+                - name: NAMESPACE
+                  value: opendatahub
+                - name: OPENCLAW_IMAGE
+                  value: "ghcr.io/openclaw/openclaw:latest"
+                # API keys will be injected from openclaw-enable-secret
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: ANTHROPIC_API_KEY
+                      optional: true
+                - name: OPENAI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: OPENAI_API_KEY
+                      optional: true
+                - name: GOOGLE_CLOUD_PROJECT
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: GOOGLE_CLOUD_PROJECT
+                      optional: true
+                - name: MODEL_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: openclaw-enable-secret
+                      key: MODEL_ENDPOINT
+                      optional: true
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openclaw-installer
+  namespace: opendatahub
+  labels:
+    app: openclaw-installer
+    opendatahub.io/dashboard: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openclaw-installer
+  namespace: opendatahub
+  labels:
+    app: openclaw-installer
+    opendatahub.io/dashboard: "true"
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openclaw-installer
+  namespace: opendatahub
+  labels:
+    app: openclaw-installer
+    opendatahub.io/dashboard: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: openclaw-installer
+subjects:
+  - kind: ServiceAccount
+    name: openclaw-installer
+    namespace: opendatahub

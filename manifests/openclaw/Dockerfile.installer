@@ -1,0 +1,18 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy pre-built openclaw-installer from local build
+COPY openclaw-installer-dist/ /app/openclaw-installer/
+
+# Create package.json for dependencies
+RUN echo '{"type":"module","dependencies":{"@kubernetes/client-node":"^1.4.0"}}' > package.json
+
+# Install dependencies
+RUN npm install
+
+# Copy installer script
+COPY install-openclaw.mjs /app/install-openclaw.mjs
+RUN chmod +x /app/install-openclaw.mjs
+
+ENTRYPOINT ["node", "/app/install-openclaw.mjs"]

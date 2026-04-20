@@ -28,7 +28,7 @@ import {
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
 import { blankDashboardCR, DEV_MODE } from './constants';
-import { getMockOpenclawApplication } from './mockOpenclawApp';
+// import { getMockOpenclawApplication } from './mockOpenclawApp'; // Commented out - loading real apps from K8s instead
 import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils';
 import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
@@ -218,7 +218,10 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
 
     fastify.log.info(`DEV_MODE=${DEV_MODE}, NODE_ENV=${process.env.NODE_ENV}`);
 
-    // In development mode, start with mock apps instead of K8s
+    // In development mode, we still load real apps from K8s
+    // The mock was causing OpenClaw not to appear because it had isEnabled: false
+    // Comment out the early return to allow real apps to also load
+    /*
     if (DEV_MODE) {
       try {
         fastify.log.info('Loading mock OpenClaw application (DEV_MODE=true)');
@@ -233,6 +236,7 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
       // Return early in dev mode - no need to query K8s
       return Promise.resolve(applicationDefs);
     }
+    */
 
     const customObjectsApi = fastify.kube.customObjectsApi;
     let _continue: string = undefined;

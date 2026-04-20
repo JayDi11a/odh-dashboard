@@ -1,0 +1,15 @@
+import * as k8s from "@kubernetes/client-node";
+import type { DeployConfig } from "./types.js";
+import type { TreeEntry } from "../state-tree.js";
+export declare function namespaceManifest(ns: string): k8s.V1Namespace;
+export declare function pvcManifest(ns: string): k8s.V1PersistentVolumeClaim;
+export declare function configMapManifest(ns: string, config: DeployConfig, gatewayToken: string): k8s.V1ConfigMap;
+export declare function agentConfigMapManifest(ns: string, config: DeployConfig, workspaceFiles: Record<string, string>): k8s.V1ConfigMap;
+export declare function fileTreeConfigMapManifest(ns: string, name: string, entries: TreeEntry[]): k8s.V1ConfigMap;
+export declare function fileConfigMapManifest(ns: string, name: string, filename: string, content?: string): k8s.V1ConfigMap;
+export declare function gcpSaSecretManifest(ns: string, saJson: string): k8s.V1Secret;
+export declare function litellmConfigMapManifest(ns: string, configYaml: string): k8s.V1ConfigMap;
+export declare function otelConfigMapManifest(ns: string, configYaml: string): k8s.V1ConfigMap;
+export declare function secretManifest(ns: string, config: DeployConfig, gatewayToken: string, litellmMasterKey?: string): k8s.V1Secret;
+export declare function serviceManifest(ns: string): k8s.V1Service;
+export declare function deploymentManifest(ns: string, config: DeployConfig, otelViaOperator?: boolean, skillEntries?: TreeEntry[], agentTreeEntries?: TreeEntry[], cronJobsContent?: string): k8s.V1Deployment;

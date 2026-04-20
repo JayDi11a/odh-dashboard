@@ -1,0 +1,103 @@
+export type DeployMode = string;
+export type BuiltinDeployMode = "local" | "kubernetes" | "ssh" | "fleet";
+export type InferenceProvider = "anthropic" | "openai" | "vertex-anthropic" | "vertex-google" | "custom-endpoint";
+export type SecretRefSource = "env" | "file" | "exec";
+export interface DeploySecretRef {
+    source: SecretRefSource;
+    provider: string;
+    id: string;
+}
+export interface DeployConfig {
+    mode: DeployMode;
+    agentName: string;
+    agentDisplayName: string;
+    prefix?: string;
+    agentSecurityMode?: "basic" | "secretrefs";
+    secretsProvidersJson?: string;
+    anthropicApiKeyRef?: DeploySecretRef;
+    openaiApiKeyRef?: DeploySecretRef;
+    telegramBotTokenRef?: DeploySecretRef;
+    sandboxEnabled?: boolean;
+    sandboxMode?: "off" | "non-main" | "all";
+    sandboxScope?: "session" | "agent" | "shared";
+    sandboxWorkspaceAccess?: "none" | "ro" | "rw";
+    sandboxBackend?: "ssh";
+    sandboxToolPolicyEnabled?: boolean;
+    sandboxToolAllowFiles?: boolean;
+    sandboxToolAllowSessions?: boolean;
+    sandboxToolAllowMemory?: boolean;
+    sandboxToolAllowRuntime?: boolean;
+    sandboxToolAllowBrowser?: boolean;
+    sandboxToolAllowAutomation?: boolean;
+    sandboxToolAllowMessaging?: boolean;
+    sandboxSshTarget?: string;
+    sandboxSshWorkspaceRoot?: string;
+    sandboxSshStrictHostKeyChecking?: boolean;
+    sandboxSshUpdateHostKeys?: boolean;
+    sandboxSshIdentity?: string;
+    sandboxSshIdentityPath?: string;
+    sandboxSshCertificate?: string;
+    sandboxSshCertificatePath?: string;
+    sandboxSshKnownHosts?: string;
+    sandboxSshKnownHostsPath?: string;
+    anthropicApiKey?: string;
+    openaiApiKey?: string;
+    inferenceProvider?: InferenceProvider;
+    agentModel?: string;
+    modelEndpoint?: string;
+    vertexEnabled?: boolean;
+    vertexProvider?: "google" | "anthropic";
+    googleCloudProject?: string;
+    googleCloudLocation?: string;
+    gcpServiceAccountJson?: string;
+    gcpServiceAccountPath?: string;
+    litellmProxy?: boolean;
+    litellmImage?: string;
+    otelEnabled?: boolean;
+    otelEndpoint?: string;
+    otelExperimentId?: string;
+    otelImage?: string;
+    otelJaeger?: boolean;
+    cronEnabled?: boolean;
+    subagentPolicy?: "none" | "self" | "unrestricted";
+    telegramEnabled?: boolean;
+    telegramBotToken?: string;
+    telegramAllowFrom?: string;
+    containerRuntime?: "podman" | "docker";
+    image?: string;
+    port?: number;
+    agentSourceDir?: string;
+    namespace?: string;
+    withA2a?: boolean;
+    sshHost?: string;
+    sshUser?: string;
+    sshKeyPath?: string;
+}
+export interface DeployResult {
+    id: string;
+    mode: DeployMode;
+    status: "running" | "stopped" | "failed" | "deploying" | "error" | "unknown";
+    config: DeployConfig;
+    startedAt: string;
+    url?: string;
+    containerId?: string;
+    volumeName?: string;
+    error?: string;
+    statusDetail?: string;
+    pods?: Array<{
+        name: string;
+        phase: string;
+        ready: boolean;
+        restarts: number;
+        containerStatus: string;
+        message: string;
+    }>;
+}
+export type LogCallback = (line: string) => void;
+export interface Deployer {
+    deploy(config: DeployConfig, log: LogCallback): Promise<DeployResult>;
+    start(result: DeployResult, log: LogCallback): Promise<DeployResult>;
+    status(result: DeployResult): Promise<DeployResult>;
+    stop(result: DeployResult, log: LogCallback): Promise<void>;
+    teardown(result: DeployResult, log: LogCallback): Promise<void>;
+}
