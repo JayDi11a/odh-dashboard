@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- mock data uses snake_case keys */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import {
@@ -115,7 +115,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(modelInfoTab.className).not.toContain('automl-model-details-nav-item--active');
   });
 
-  it('should exclude confusion matrix tab for timeseries task type', () => {
+  it('should exclude confusion matrix and feature summary tabs for timeseries task type', () => {
     render(
       <AutomlResultsContext.Provider value={mockTimeseriesContext}>
         <AutomlModelDetailsModal {...defaultProps} modelName="TemporalFusionTransformer" />
@@ -123,8 +123,8 @@ describe('AutomlModelDetailsModal', () => {
     );
 
     expect(screen.getByTestId('tab-model-information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-feature-summary')).toBeInTheDocument();
     expect(screen.getByTestId('tab-model-evaluation')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-feature-summary')).not.toBeInTheDocument();
     expect(screen.queryByTestId('tab-confusion-matrix')).not.toBeInTheDocument();
   });
 
@@ -169,7 +169,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(screen.getByLabelText('Model information info')).toBeInTheDocument();
   });
 
-  it('should render Download and Save as notebook buttons', () => {
+  it('should render Download button and Save as dropdown', () => {
     render(
       <AutomlResultsContext.Provider value={mockTabularContext}>
         <AutomlModelDetailsModal {...defaultProps} onClickSaveNotebook={jest.fn()} />
@@ -177,7 +177,7 @@ describe('AutomlModelDetailsModal', () => {
     );
 
     expect(screen.getByTestId('model-details-download')).toBeInTheDocument();
-    expect(screen.getByTestId('model-details-save-notebook')).toBeInTheDocument();
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
   });
 
   it('should call onClose when modal close is triggered', async () => {
@@ -236,7 +236,43 @@ describe('AutomlModelDetailsModal', () => {
     expect(downloadButton).toBeEnabled();
   });
 
-  it('should call onClickSaveNotebook when "Save as notebook" button is clicked', async () => {
+  it('should disable download button for non-timeseries without feature importance', () => {
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    useModelEvaluationArtifactsQuery.mockReturnValue({
+      featureImportance: undefined,
+      confusionMatrix: undefined,
+      isLoading: false,
+    });
+
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const downloadButton = screen.getByTestId('model-details-download');
+    expect(downloadButton).toBeDisabled();
+  });
+
+  it('should enable download button for timeseries without feature importance', () => {
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    useModelEvaluationArtifactsQuery.mockReturnValue({
+      featureImportance: undefined,
+      confusionMatrix: undefined,
+      isLoading: false,
+    });
+
+    render(
+      <AutomlResultsContext.Provider value={mockTimeseriesContext}>
+        <AutomlModelDetailsModal {...defaultProps} modelName="TemporalFusionTransformer" />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const downloadButton = screen.getByTestId('model-details-download');
+    expect(downloadButton).toBeEnabled();
+  });
+
+  it('should call onClickSaveNotebook when "Save as notebook" is clicked in dropdown', async () => {
     const onClickSaveNotebook = jest.fn();
     const user = userEvent.setup();
 
@@ -246,8 +282,8 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    const saveNotebookButton = screen.getByTestId('model-details-save-notebook');
-    await user.click(saveNotebookButton);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
     expect(onClickSaveNotebook).toHaveBeenCalledTimes(1);
@@ -268,21 +304,122 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(toggle);
     await user.click(screen.getByText('RandomForest_BAG_L1_FULL'));
 
-    // Click save notebook button
-    const saveNotebookButton = screen.getByTestId('model-details-save-notebook');
-    await user.click(saveNotebookButton);
+    // Click save notebook via dropdown
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     // Should be called with the newly selected model
     expect(onClickSaveNotebook).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
   });
 
-  it('should not render "Save as notebook" button when callback is not provided', () => {
+  it('should call onRegisterModel and onClose when "Register model" is clicked', async () => {
+    const onRegisterModel = jest.fn();
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+
     render(
       <AutomlResultsContext.Provider value={mockTabularContext}>
-        <AutomlModelDetailsModal {...defaultProps} onClickSaveNotebook={undefined} />
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClose={onClose}
+          onRegisterModel={onRegisterModel}
+        />
       </AutomlResultsContext.Provider>,
     );
 
-    expect(screen.queryByTestId('model-details-save-notebook')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onRegisterModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onRegisterModel with current model when model is switched', async () => {
+    const onRegisterModel = jest.fn();
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClose={onClose}
+          onRegisterModel={onRegisterModel}
+        />
+      </AutomlResultsContext.Provider>,
+    );
+
+    // Switch to a different model
+    const toggle = screen.getByTestId('model-selector-dropdown');
+    await user.click(toggle);
+    await user.click(screen.getByText('RandomForest_BAG_L1_FULL'));
+
+    // Click register model via dropdown
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+  });
+
+  it('should render print portal with all visible tabs when download is clicked', async () => {
+    const user = userEvent.setup();
+    const printSpy = jest.spyOn(window, 'print').mockReturnValue(undefined);
+
+    try {
+      render(
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal {...defaultProps} />
+        </AutomlResultsContext.Provider>,
+      );
+
+      // Click download to trigger isPrinting
+      const downloadButton = screen.getByTestId('model-details-download');
+      await user.click(downloadButton);
+
+      // Print container should be portalled to document.body
+      const printContainer = screen.getByTestId('print-container');
+      expect(printContainer.parentElement).toBe(document.body);
+
+      // Should render a page for each visible tab (tabular: 4 tabs)
+      expect(screen.getByTestId('print-page-model-information')).toBeInTheDocument();
+      expect(screen.getByTestId('print-page-feature-summary')).toBeInTheDocument();
+      expect(screen.getByTestId('print-page-model-evaluation')).toBeInTheDocument();
+      expect(screen.getByTestId('print-page-confusion-matrix')).toBeInTheDocument();
+
+      // Each page should have a header with the model name
+      const pages = printContainer.querySelectorAll('.automl-print-page');
+      pages.forEach((page) => {
+        expect(within(page as HTMLElement).getByText('CatBoost_BAG_L2_FULL')).toBeInTheDocument();
+      });
+
+      // First page should have the --first modifier
+      expect(screen.getByTestId('print-page-model-information')).toHaveClass(
+        'automl-print-page--first',
+      );
+      // Second page should NOT have --first
+      expect(screen.getByTestId('print-page-feature-summary')).not.toHaveClass(
+        'automl-print-page--first',
+      );
+
+      expect(printSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      printSpy.mockRestore();
+    }
+  });
+
+  it('should not render Save as dropdown when neither callback is provided', () => {
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClickSaveNotebook={undefined}
+          onRegisterModel={undefined}
+        />
+      </AutomlResultsContext.Provider>,
+    );
+
+    expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
   });
 });

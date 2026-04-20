@@ -114,6 +114,9 @@ const (
 
 	// MCPServer deployment handlers - downstream-only
 	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
+	handlerMcpDeploymentGetID      HandlerID = "mcpDeployment:get"
+	handlerMcpDeploymentCreateID   HandlerID = "mcpDeployment:create"
+	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
 	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
@@ -285,7 +288,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PATCH(ModelArtifactPath, app.AttachNamespace(app.RequireAccessToMRService(app.AttachModelRegistryRESTClient(app.UpdateModelArtifactHandler))))
 
 	// Model Transfer Jobs
-	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetAllModelTransferJobsHandler)))
+	apiRouter.GET(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.handlerWithOverride(HandlerIDModelTransferJobList, func() httprouter.Handle { return app.GetAllModelTransferJobsHandler }))))
 	apiRouter.GET(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobHandler)))
 	apiRouter.GET(ModelTransferJobEventsPath, app.AttachNamespace(app.RequireAccessToMRService(app.GetModelTransferJobEventsHandler)))
 	apiRouter.POST(ModelTransferJobListPath, app.AttachNamespace(app.RequireAccessToMRService(app.CreateModelTransferJobHandler)))
@@ -362,6 +365,24 @@ func (app *App) Routes() http.Handler {
 			McpDeploymentListPath,
 			app.handlerWithOverride(handlerMcpDeploymentListID, func() httprouter.Handle {
 				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployments list"))
+			}),
+		)
+		apiRouter.GET(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment get"))
+			}),
+		)
+		apiRouter.POST(
+			McpDeploymentListPath,
+			app.handlerWithOverride(handlerMcpDeploymentCreateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment create"))
+			}),
+		)
+		apiRouter.PATCH(
+			McpDeploymentPath,
+			app.handlerWithOverride(handlerMcpDeploymentUpdateID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment update"))
 			}),
 		)
 		apiRouter.DELETE(

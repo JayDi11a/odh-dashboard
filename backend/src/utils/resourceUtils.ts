@@ -560,6 +560,11 @@ const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => {
          * Fine Tuning feature is no longer supported
          */
         disableFineTuning: true,
+
+        /**
+         * MLflow is now always enabled when the operator component is present
+         */
+        mlflow: true,
       },
     },
   };

@@ -34,6 +34,61 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
   return 'faithfulness';
 }
 
+export function sanitizeFilename(str: string): string {
+  return (
+    str
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^[.\s]+|[.\s]+$/g, '')
+      .trim() || 'unknown'
+  );
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Insert a non-breaking space between a word prefix and trailing digits.
+ * e.g. "Pattern7" → "Pattern\u00a07"
+ */
+export function formatPatternName(name: string): string {
+  return name.replace(/(\S)\s*(\d+)$/, '$1\u00a0$2');
+}
+
+/**
+ * Format metric key names for display (e.g. "answer_correctness" -> "Answer Correctness").
+ */
+export function formatMetricName(metricKey: string): string {
+  /* eslint-disable camelcase */
+  const specialCases: Record<string, string> = {
+    faithfulness: 'Answer faithfulness',
+    answer_correctness: 'Answer correctness',
+    context_correctness: 'Context correctness',
+    answer_relevancy: 'Answer relevancy',
+    context_precision: 'Context precision',
+    context_recall: 'Context recall',
+  };
+  /* eslint-enable camelcase */
+
+  if (specialCases[metricKey]) {
+    return specialCases[metricKey];
+  }
+
+  return metricKey
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 /**
  * Format metric values for display.
  * Uses scientific notation for non-zero values that would round to 0.000.
