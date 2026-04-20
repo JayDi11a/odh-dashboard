@@ -32,6 +32,7 @@ import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowExperimentsPath } from '#~/routes/pipelines/mlflow';
+import { useOpenClawInstallationStatus } from '#~/utilities/useOpenClawInstallationStatus';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import SupportedAppTitle from './SupportedAppTitle';
 import BrandImage from './BrandImage';
@@ -54,6 +55,11 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
   const { dashboardConfig } = useAppContext();
   const dispatch = useAppDispatch();
   const { isAdmin } = useUser();
+  const isOpenClaw = odhApp.metadata.name === 'openclaw';
+  const openclawInstalled = useOpenClawInstallationStatus(
+    odhApp.metadata.name,
+    Boolean(odhApp.spec.isEnabled && isOpenClaw),
+  );
 
   if (odhApp.metadata.name === 'mlflow' && !mlflowEnabled) {
     return null;
@@ -172,13 +178,19 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     }
 
     if (odhApp.metadata.name === 'openclaw' && odhApp.spec.internalRoute === 'openclaw') {
+      const isOpenclawReady = odhApp.spec.isEnabled && openclawInstalled;
       return (
         <Link
           data-testid="openclaw-app-link"
           to="/openclaw"
-          className={css('odh-card__footer__link')}
+          className={css('odh-card__footer__link', !isOpenclawReady && 'm-disabled')}
+          onClick={(e) => {
+            if (!isOpenclawReady) {
+              e.preventDefault();
+            }
+          }}
         >
-          Launch OpenClaw
+          {isOpenclawReady ? 'Launch OpenClaw' : 'Installing OpenClaw...'}
         </Link>
       );
     }
