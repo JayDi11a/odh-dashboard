@@ -11,6 +11,12 @@ echo "=================================================="
 echo "Cleaning up OpenClaw installation in namespace: $NAMESPACE"
 echo "=================================================="
 
+# Delete OpenClaw Installer UI resources (created by installer CronJob)
+echo "Removing OpenClaw Installer UI resources..."
+oc delete deployment openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+oc delete service openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+oc delete route openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
+
 # Delete OpenClaw deployment resources
 echo "Removing OpenClaw deployment resources..."
 oc delete deployment openclaw -n "$NAMESPACE" --ignore-not-found=true
@@ -49,6 +55,7 @@ oc patch configmap odh-enabled-applications-config -n "$NAMESPACE" --type='json'
 # Delete any additional OpenClaw resources (labeled)
 echo "Removing additional OpenClaw resources..."
 oc delete all -l app=openclaw -n "$NAMESPACE" --ignore-not-found=true
+oc delete all -l app=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
 oc delete all -l app.kubernetes.io/managed-by=openclaw-installer -n "$NAMESPACE" --ignore-not-found=true
 
 # Restart dashboard pod to clear cached application state
