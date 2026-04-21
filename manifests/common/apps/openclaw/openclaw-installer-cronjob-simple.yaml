@@ -73,6 +73,8 @@ spec:
                                 value: "image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw-module:latest"
                               - name: OAUTH_PROXY_IMAGE
                                 value: "image-registry.openshift-image-registry.svc:5000/opendatahub/oauth-proxy:4.14"
+                              - name: OPENCLAW_INSTALLER_BIND_HOST
+                                value: "0.0.0.0"
                             resources:
                               requests:
                                 cpu: 100m
