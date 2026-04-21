@@ -67,6 +67,8 @@ spec:
                             env:
                               - name: OPENCLAW_NAMESPACE
                                 value: "$NAMESPACE"
+                              - name: OPENCLAW_INIT_IMAGE
+                                value: "image-registry.openshift-image-registry.svc:5000/opendatahub/origin-cli:latest"
                             resources:
                               requests:
                                 cpu: 100m
