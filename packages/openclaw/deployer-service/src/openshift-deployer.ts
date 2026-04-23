@@ -71,7 +71,11 @@ async function createOAuthSecret(namespace: string): Promise<k8s.V1Secret> {
 /**
  * Create OpenClaw secrets (API keys, credentials, gateway token)
  */
-function createOpenClawSecrets(namespace: string, config: DeploymentConfig, gatewayToken: string): k8s.V1Secret {
+function createOpenClawSecrets(
+  namespace: string,
+  config: DeploymentConfig,
+  gatewayToken: string,
+): k8s.V1Secret {
   const secretData: Record<string, string> = {};
 
   // Store gateway token
@@ -107,7 +111,10 @@ function createOpenClawSecrets(namespace: string, config: DeploymentConfig, gate
  * Create OpenClaw Deployment with OAuth proxy sidecar
  */
 function createDeployment(namespace: string, config: DeploymentConfig): k8s.V1Deployment {
-  const image = config.image || 'ghcr.io/anthropics/openclaw:latest';
+  const image =
+    config.image ||
+    process.env.OPENCLAW_IMAGE ||
+    'image-registry.openshift-image-registry.svc:5000/opendatahub/openclaw-module:latest';
 
   return {
     apiVersion: 'apps/v1',
@@ -199,7 +206,9 @@ function createDeployment(namespace: string, config: DeploymentConfig): k8s.V1De
             // OAuth proxy sidecar
             {
               name: 'oauth-proxy',
-              image: 'quay.io/openshift/origin-oauth-proxy:4.15',
+              image:
+                process.env.OAUTH_PROXY_IMAGE ||
+                'image-registry.openshift-image-registry.svc:5000/opendatahub/oauth-proxy:4.14',
               ports: [
                 {
                   containerPort: 8443,

@@ -6,9 +6,11 @@
 set -e
 
 NAMESPACE="${1:-opendatahub}"
+KEEP_IMAGE="${KEEP_IMAGE:-true}"  # Set to 'false' to delete imagestream (requires rebuilding image)
 
 echo "=================================================="
 echo "Cleaning up OpenClaw installation in namespace: $NAMESPACE"
+echo "Image cleanup mode: $([ "$KEEP_IMAGE" = "true" ] && echo "KEEP (imagestream preserved)" || echo "FULL (imagestream will be deleted)")"
 echo "=================================================="
 
 # Delete OpenClaw Installer UI resources (created by installer CronJob)
@@ -63,6 +65,37 @@ oc patch configmap odh-enabled-applications-config -n "$NAMESPACE" --type='json'
   -p='[{"op": "remove", "path": "/data/openclaw"}]' 2>/dev/null || \
   echo "  (ConfigMap entry already removed or doesn't exist)"
 
+# Delete BuildConfigs from failed in-cluster build attempts
+echo "Removing OpenClaw BuildConfigs..."
+oc delete buildconfig openclaw-module-build -n "$NAMESPACE" --ignore-not-found=true
+oc delete buildconfig openclaw-module-build-ubi -n "$NAMESPACE" --ignore-not-found=true
+
+# Delete failed builds
+echo "Removing failed builds..."
+oc delete builds -l buildconfig=openclaw-module-build -n "$NAMESPACE" --ignore-not-found=true
+oc delete builds -l buildconfig=openclaw-module-build-ubi -n "$NAMESPACE" --ignore-not-found=true
+
+# Delete image transfer PVC (from local image upload process)
+echo "Removing image transfer PVC..."
+oc delete pvc openclaw-image-transfer -n "$NAMESPACE" --ignore-not-found=true
+
+# Delete privileged service account used for image loading
+echo "Removing privileged service account..."
+oc delete sa image-loader-sa -n "$NAMESPACE" --ignore-not-found=true
+
+# Conditionally delete ImageStream based on KEEP_IMAGE setting
+if [ "$KEEP_IMAGE" = "false" ]; then
+  echo "⚠️  Deleting OpenClaw ImageStream (image will need to be rebuilt)..."
+  oc delete imagestream openclaw-module -n "$NAMESPACE" --ignore-not-found=true
+  echo "  ⚠️  WARNING: You will need to rebuild and push the openclaw-module image"
+  echo "  ⚠️  See /Users/geraldtrotman/Virtualenvs/openclaw-npm/Dockerfile for rebuild instructions"
+else
+  echo "✓ Keeping OpenClaw ImageStream (contains locally-built image)"
+  echo "  ImageStream: openclaw-module"
+  IMAGE_SHA=$(oc get imagestream openclaw-module -n "$NAMESPACE" -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}' 2>/dev/null || echo "Not found")
+  echo "  Latest image: $IMAGE_SHA"
+fi
+
 # Restart dashboard pod to clear cached application state
 echo "Restarting dashboard pod to refresh application state..."
 oc delete pod -n "$NAMESPACE" -l app=odh-dashboard --ignore-not-found=true
@@ -70,4 +103,14 @@ oc delete pod -n "$NAMESPACE" -l app=odh-dashboard --ignore-not-found=true
 echo "=================================================="
 echo "OpenClaw cleanup complete!"
 echo "OpenClaw should now show 'Enable' button in dashboard"
+if [ "$KEEP_IMAGE" = "true" ]; then
+  echo "✓ ImageStream preserved - deployments will use locally-built image"
+else
+  echo "⚠️  ImageStream deleted - image must be rebuilt before next deployment"
+fi
+echo ""
+echo "⚠️  Note: If you had DEV_MODE or oauth-proxy bypass configured,"
+echo "   you'll need to reapply after re-enabling OpenClaw:"
+echo "   oc set env deployment/openclaw DEV_MODE=true -n opendatahub"
+echo "   Then patch oauth-proxy args to use --skip-auth-regex=.*"
 echo "=================================================="
