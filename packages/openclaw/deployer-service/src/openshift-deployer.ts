@@ -164,6 +164,11 @@ function createDeployment(namespace: string, config: DeploymentConfig): k8s.V1De
                   name: 'MODEL_NAME',
                   value: config.modelName,
                 },
+                // DEV_MODE for development/testing (bypasses authentication)
+                {
+                  name: 'DEV_MODE',
+                  value: 'true',
+                },
                 // Gateway token from secret
                 {
                   name: 'GATEWAY_TOKEN',
@@ -208,7 +213,7 @@ function createDeployment(namespace: string, config: DeploymentConfig): k8s.V1De
               name: 'oauth-proxy',
               image:
                 process.env.OAUTH_PROXY_IMAGE ||
-                'image-registry.openshift-image-registry.svc:5000/opendatahub/oauth-proxy:4.14',
+                'image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:v4.4',
               ports: [
                 {
                   containerPort: 8443,
@@ -224,6 +229,7 @@ function createDeployment(namespace: string, config: DeploymentConfig): k8s.V1De
                 '--tls-cert=/etc/tls/private/tls.crt',
                 '--tls-key=/etc/tls/private/tls.key',
                 '--cookie-secret-file=/etc/oauth/cookie-secret',
+                '--skip-auth-regex=.*', // Skip authentication for dev/testing
               ],
               volumeMounts: [
                 {
